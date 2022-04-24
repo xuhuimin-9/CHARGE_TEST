@@ -307,7 +307,7 @@ bool agv_battery::get_target_ok(unsigned short& value)
 bool agv_battery::send_start_charge(int task_id)
 {
 
-	WCS_CON_->insertTask(task_id, "NA", "P1", 1, 2, AGV_IN_SITU_CHARGING, 0, agv_id_,-1 , "");
+	WCS_CON_->insertTask(task_id, "NA", "NA", 999, 2, AGV_IN_SITU_CHARGING, 0, agv_id_,-1 , "");
 
 	return true;
 
@@ -319,7 +319,7 @@ bool agv_battery::send_start_charge(int task_id)
 
 bool agv_battery::send_stop_charge(int task_id)
 {
-	WCS_CON_->insertTask(task_id, "NA", "NA", 1, 2, AGV_IN_SITU_CHARGING_STOP, 0, agv_id_, -1, "");
+	WCS_CON_->insertTask(task_id, "NA", "NA", 999, 2, AGV_IN_SITU_CHARGING_STOP, 0, agv_id_, -1, "");
 	return true;
 }
 
@@ -429,29 +429,28 @@ bool agv_battery::get_current_flag()
 
 void init_sys_battery()
 {
-	std::map<int, AGV*> AGV_List_ = AGV_MANAGE.Get_All_AGV();
+	/*std::map<int, AGV*> AGV_List_ = AGV_MANAGE.Get_All_AGV();
 	vector<string> agvs;
 	for each (auto agv in AGV_List_)
 	{
 		agvs.push_back("" + agv.second->AGV_ID_);//int转string
-	}
-	//vector<string> agvs = { "1" };
-	int index = 0;
-	for (index = 0; index < agvs.size(); index++)
+	}*/
+
+	vector<string> agvs = { "1" };
+	for (int index = 0; index < agvs.size(); index++)
 	{
 		p_battery[index] = new agv_battery(stoi(agvs[index]));
 
-		if (agvs[index] == "1")
+		/*if (agvs[index] == "1")
 		{
 			p_battery[index] = new agv_battery(1);
 		}
 		else
 		{
 			p_battery[index] = NULL;
-		}
+		}*/
 	}
 }
-
 
 /*
 * 清理battery的相关数据
@@ -468,7 +467,7 @@ void clean_sys_battery()
 			delete p_battery[index];
 		}
 	}*/
-	delete p_battery;
+	delete []p_battery;
 }
 
 

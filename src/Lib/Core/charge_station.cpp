@@ -23,6 +23,7 @@
 #include <conio.h>
 #include <windows.h>
 #include "comm/simplelog.h"
+#include "Manage/Parking_Manage.h"  
 
 #include <iostream>
 using namespace std;
@@ -39,13 +40,15 @@ using namespace std;
 #define  NETMASK    "255.255.255.0"
 #endif
 
-charge_station* p_cs = NULL;
+charge_station* p_cs[30] = { NULL };
+
+int index = 0;
 
 /*
 * 构造函数
 */
 
-charge_station::charge_station(int id, const char* ip, int port)
+charge_station::charge_station(int id, string ip, int port)
 {
 	this->id_ = id;
 	this->ip_ = ip;
@@ -669,7 +672,7 @@ boolean charge_station::connect_socket()
 	unsigned long ul = 1;
 
 	ClientAddr.sin_family = AF_INET;//服务器 流套接字
-	ClientAddr.sin_addr.s_addr = inet_addr(ip_);//服务器ip地址
+	ClientAddr.sin_addr.s_addr = inet_addr(ip_.c_str());//服务器ip地址
 	ClientAddr.sin_port = htons(port_);//服务器端口
 	memset(ClientAddr.sin_zero, 0x00, 8);
 
@@ -721,6 +724,8 @@ boolean charge_station::init_socket()
 		return TRUE;
 	}
 
+	int error = GetLastError();
+	log_info("error = %d", error);
 	return FALSE;
 }
 
@@ -795,7 +800,7 @@ int charge_station::run_entry(charge_station* p_charge)
 			{
 			case TERMINATE_CHARGE_MSG_MACRO://终止充电
 
-				//stop = 1;
+				stop = 1;
 				break;
 
 			case GET_CHARGE_STATE_MSG_MACRO://获取充电状态
@@ -884,17 +889,28 @@ int charge_station::run_entry(charge_station* p_charge)
 
 void init_sys_charge()
 {
-	DWORD ThreadID;
+	//获取所有停车站点信息
+	std::vector<ModelStationParking*>  allParkingStation = PARKING_MANAGE.getAllParkingStation();
+	
+	if (allParkingStation.begin() != allParkingStation.end())
+	{ 
+		for each (auto iter in allParkingStation)
+		{
+			ModelStationParking* station = iter;
 
-	p_cs = new charge_station(1, "192.168.0.101", 4001);
+			DWORD ThreadID;
 
-	CreateThread(NULL,
-		0,
-		(LPTHREAD_START_ROUTINE)&charge_station::run_entry,
-		p_cs,
-		0,
-		&ThreadID);
-
+			int id = station->getName().at(1) - '0';
+			p_cs[index] = new charge_station(id, station->getIp(), 4001);
+			CreateThread(NULL,
+				0,
+				(LPTHREAD_START_ROUTINE)&charge_station::run_entry,
+				p_cs[index],
+				0,
+				&ThreadID);
+			index++;
+		}
+	}
 }
 
 
@@ -904,9 +920,19 @@ void init_sys_charge()
 
 void clean_sys_charge()
 {
-	if (p_cs)
+	//轮询清理
+	for (int i = 0; i < index; i++)
+	{
+		if (p_cs[i])
+		{
+			write_msg(p_cs[i]->get_queue(), NULL, 0, TERMINATE_CHARGE_MSG_MACRO);
+			delete p_cs[i];
+		}
+	}
+
+	/*if (p_cs)
 	{
 		write_msg(p_cs->get_queue(), NULL, 0, TERMINATE_CHARGE_MSG_MACRO);
 		delete p_cs;
-	}
+	}*/
 }

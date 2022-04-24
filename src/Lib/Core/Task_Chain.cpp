@@ -316,8 +316,10 @@ TASK_CHAIN_STATUS Task_Chain::createChargingTaskChain()
 
 #if 1
 	extern agv_battery* p_battery[];
-	extern charge_station* p_cs;
-	charge_task* p_work = new charge_task(p_battery[Associate_AGV_->ID_ - 1], p_cs);
+	extern charge_station* p_cs[];
+	int battery_id = Associate_AGV_->ID_ - 1;
+	int station_id = Associate_AGV_->AGV_In_Station_.at(1) - '0' - 1 ;
+	charge_task* p_work = new charge_task(p_battery[battery_id], p_cs[station_id]);
 	add_charge_task(Associate_AGV_->AGV_ID_, p_work);
 	DWORD ThreadID;
 	CreateThread(NULL,

@@ -13,8 +13,6 @@
 #include "Common/Common.h"
 #include "comm/Comm.h"
 #include "comm/simplelog.h"
-#include "Core/charge_station.h"
-#include "Core/agv_battery.h"
 
 
 MainWindow* m_main = nullptr;
@@ -192,9 +190,6 @@ int main(int argc,char *argv[])
 		CloseHandle(hMutex);
 		return FALSE;
 	}
-
-	init_sys_charge();//初始化充电桩
-	init_sys_battery();//初始化电池
 	
 	//将log输出到主窗口的print_info方法中。
 	auto slot = boost::bind(&MainWindow::print_info, m_main, _1, _2);

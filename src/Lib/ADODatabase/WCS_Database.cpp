@@ -2726,7 +2726,8 @@ bool WCS_Database::getParkingStorage(std::vector<ModelStationParking*> *parkings
 				std::string name = (std::string)(_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("STATION_NAME"))->Value);
 				std::string charging = (std::string)(_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("IS_CHARGING"))->Value);
 				std::string status = (std::string)(_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("STATUS"))->Value);
-				(*parkings).push_back(new ModelStationParking(name, charging, status));
+				std::string ip = (std::string)(_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("IP_ADDRESS"))->Value);
+				(*parkings).push_back(new ModelStationParking(name, charging, status,ip));
 				recordPtr_->MoveNext();
 			}
 			

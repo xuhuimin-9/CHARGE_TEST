@@ -10,6 +10,8 @@
 #include <fstream>
 #include <iostream>
 #include "ADODatabase/ApiClient.h"
+#include "Core/charge_station.h"
+#include "Core/agv_battery.h"
 
 Event_Handler::Event_Handler()
 {	
@@ -33,6 +35,10 @@ void Event_Handler::Initial(){
 	DATABASE_MANAGE.Initial(); 
 	STORAGE_MANAGE.Initial();
 	PARKING_MANAGE.Initial();
+
+	init_sys_charge();//初始化充电桩
+	init_sys_battery();//初始化电池
+
 	existstorages = new std::map<std::string, int>;
 }
 

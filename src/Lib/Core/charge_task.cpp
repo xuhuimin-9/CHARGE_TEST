@@ -21,8 +21,6 @@ using namespace std;
 #include "Core/Task_Chain_Manage.h"
 
 //extern QUEUE* p_main_queue;
-extern charge_station* p_cs;
-charge_task* p_t;
 
 struct runnig_charge_task
 {
@@ -138,8 +136,7 @@ charge_task::charge_task(agv_battery* p_battery, charge_station* p_charge)
 
 charge_task::~charge_task()
 {
-	//free_queue(this->p_queue_);
-	//clean_sys_charge();
+	free_queue(this->p_queue_);
 }
 
 /*
@@ -308,33 +305,24 @@ boolean charge_task::run_entry(charge_task* p_task)
 			p_battery->send_start_charge(TASK_CHAIN_MANAGE.Generate_New_Sub_Task_ID());
 			p_charge->set_charge_current(20);
 			Sleep(1000);
-			//p_task->set_state(TASK_STATION_START);
+			log_info("current task state is TASK_CHARGE_START , will stwich to TASK_ARM_OUT_STATE!");
 			p_task->set_state(TASK_ARM_OUT_STATE); //伸出机械臂
-			log_info("TASK STATE : TASK_CHARGE_START!");
 			break;
 
 		case TASK_ARM_OUT_STATE:
 
 			/* 伸出机械臂 */
-
 			if (index < 3)
 			{
-				if (index != 2)//为避免发送失败，选发两次空值
-				{
-					write_msg(p_cs->get_queue(), NULL, 0, NULL);
-				}
-				else
-				{
-					write_msg(p_cs->get_queue(), NULL, 0, ARM_OUT_MSG_MACRO);
-				}
+				write_msg(p_charge->get_queue(), NULL, 0, ARM_OUT_MSG_MACRO);
 
 				Sleep(100);
 				index += 1;
 				continue;
 			}
-			log_info("TASK STATE : TASK_ARM_OUT_STATE!");
-
+		
 			index = 0;
+			log_info("current task state is TASK_ARM_OUT_STATE , will stwich to TASK_WAIT_ARM_OUT_STATE!");
 			p_task->set_state(TASK_WAIT_ARM_OUT_STATE);
 			break;
 
@@ -342,7 +330,7 @@ boolean charge_task::run_entry(charge_task* p_task)
 
 			/* 确保机械臂伸出去 */
 
-			if (index < 30)
+			if (index < 150)
 			{
 				Sleep(100);
 				index += 1;
@@ -350,7 +338,7 @@ boolean charge_task::run_entry(charge_task* p_task)
 			}
 
 			index = 0;
-			log_info("TASK STATE : TASK_WAIT_ARM_OUT_STATE!");
+			log_info("current task state is TASK_WAIT_ARM_OUT_STATE , will stwich to TASK_CHARGE_CURRENT!");
 			p_task->set_state(TASK_CHARGE_CURRENT);
 			break;
 
@@ -358,11 +346,11 @@ boolean charge_task::run_entry(charge_task* p_task)
 
 			/* 设定充电电流 */
 
-			write_msg(p_cs->get_queue(), NULL, 0, START_CHARGE_MSG_MACRO);
+			write_msg(p_charge->get_queue(), NULL, 0, START_CHARGE_MSG_MACRO);
 
 			index = 0;
-			log_info("TASK STATE : TASK_CHARGE_CURRENT!");
 			Sleep(1000);
+			log_info("current task state is TASK_CHARGE_CURRENT , will stwich to TASK_CHARGE_STATE!");
 			p_task->set_state(TASK_CHARGE_STATE);
 			break;
 
@@ -425,26 +413,30 @@ boolean charge_task::run_entry(charge_task* p_task)
 			{
 				if (p_task->get_battery()->get_max_current_value(max_current))
 				{
-					if (max_current <= 10)
+					if (max_current <= 10 )
 					{
 						goto exit;
+					}
+					else if(max_current > 120)
+					{
+						max_current = 120 ;
 					}
 					p_charge->set_max_current(max_current);
 					int charge_current = p_charge->get_charge_current();
 					if ((charge_current + 10) < max_current)
 					{
-						log_info("current : %d , max current : %d !", charge_current, max_current);
+						log_info("current : %d A, max current : %d A!", charge_current, max_current);
 						//int value = (max_current - 10 - charge_current) * 0.3;
 						charge_current += 10;
 						p_charge->set_charge_current(charge_current);
-						write_msg(p_cs->get_queue(), NULL, 0, START_CHARGE_MSG_MACRO);
+						write_msg(p_charge->get_queue(), NULL, 0, START_CHARGE_MSG_MACRO);
 						break;
 					}
 					else if (charge_current > max_current)
 					{
 						charge_current -= 10;
 						p_charge->set_charge_current(charge_current);
-						write_msg(p_cs->get_queue(), NULL, 0, START_CHARGE_MSG_MACRO);
+						write_msg(p_charge->get_queue(), NULL, 0, START_CHARGE_MSG_MACRO);
 					}
 				}
 			}
@@ -462,14 +454,8 @@ boolean charge_task::run_entry(charge_task* p_task)
 
 			if (index < 3)
 			{
-				if (index != 2)//为避免发送失败，先发两次空值
-				{
-					write_msg(p_cs->get_queue(), NULL, 0, NULL);
-				}
-				else
-				{
-					write_msg(p_cs->get_queue(), NULL, 0, ARM_IN_MSG_MACRO);
-				}
+
+				write_msg(p_charge->get_queue(), NULL, 0, ARM_IN_MSG_MACRO);
 
 				Sleep(100);
 				index += 1;
@@ -485,7 +471,7 @@ boolean charge_task::run_entry(charge_task* p_task)
 
 			/* 确保充电桩缩回去 */
 
-			if (index < 30)
+			if (index < 150)
 			{
 				index++;
 				Sleep(100);
@@ -510,7 +496,7 @@ boolean charge_task::run_entry(charge_task* p_task)
 
 			/* 任务结束 */
 
-			log_info("AGV %d CHARGE TASK OVER!");
+			log_info("AGV CHARGE TASK OVER!");
 			p_task->set_stop(1);
 
 			break;

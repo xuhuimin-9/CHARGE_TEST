@@ -2,6 +2,9 @@
 #define _CHARGE_STATION_H
 
 #include <windows.h>
+#include <iostream>
+#include <string>
+using namespace std;
 #include "Core/queue.h"
 
 
@@ -31,7 +34,7 @@ class charge_station
 {
 public:
 
-	charge_station(int id, const char* ip, int port);
+	charge_station(int id, std::string ip, int port);
 	~charge_station();
 	boolean init_socket();
 	boolean connect_session();
@@ -55,7 +58,7 @@ public:
 private:
 
 	int id_;
-	const char* ip_;
+	string ip_;
 	int port_;
 	int max_current_;
 	int charge_current_;
