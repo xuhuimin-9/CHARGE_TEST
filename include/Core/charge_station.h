@@ -49,6 +49,7 @@ public:
 	boolean get_control_state(unsigned short* p_error); /* 获取控制状态 */
 	boolean request_charge_state();    /* 申请获取charge状态 */
 	boolean get_charge_state(unsigned short* p_state, unsigned int* p_voltage, unsigned char* p_current);
+	boolean get_charge_state(unsigned short* p_state, unsigned int* p_voltage, unsigned char* p_current, unsigned short* p_err);
 	/* 运行状态 */
 	QUEUE* get_queue();                        /* 获取消息队列指针 */
 	int get_id() { return id_; };
@@ -62,6 +63,7 @@ private:
 	int port_;
 	int max_current_;
 	int charge_current_;
+	int err_code_;
 
 	boolean socket_state;
 	SOCKET client_socket;

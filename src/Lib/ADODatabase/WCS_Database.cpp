@@ -112,6 +112,7 @@ bool WCS_Database::copyOrderInfo(Task_Chain_Info &order_in)
 					std::string start_area = TASK_CHAIN_MANAGE.get_storage_area(order_in.START_);
 					std::string target_area = TASK_CHAIN_MANAGE.get_storage_area(order_in.TARGET_);
 
+#if 0
 					bool start_status = getDatabaseCurrentComfirmStatus(start_area);
 					bool targeted_status = getDatabaseCurrentComfirmStatus(target_area);
 					if (start_status && !targeted_status)
@@ -126,7 +127,8 @@ bool WCS_Database::copyOrderInfo(Task_Chain_Info &order_in)
 					{
 						no_lock_order.push_back(order_in);//都没锁
 					}
-					//all_order.push_back(order_in);
+#endif
+					all_order.push_back(order_in);
 					recordPtr_->MoveNext();
 						
 				}

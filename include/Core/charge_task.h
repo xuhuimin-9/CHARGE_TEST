@@ -47,6 +47,7 @@ public:
 	void set_state(STATE state);
 	int get_charge_period();
 	void set_charge_period(int period);
+	void getBatteryConfig();
 	
 private:
 
@@ -57,6 +58,7 @@ private:
 	STATE state_;
 	int charge_period_;
 	double soc_;
+	double stop_charge_soc_;
 
 private:
 
@@ -67,6 +69,6 @@ void add_charge_task(int agvid, charge_task* p_work);
 void del_charge_task_by_agvid(int agvid);
 void del_charge_task_by_ptr(charge_task* p_work);
 charge_task* find_charge_task(int agvid);
-bool find_charge_task_state(int agvid);
+bool find_charge_task_is_over(int agvid);
 
 #endif

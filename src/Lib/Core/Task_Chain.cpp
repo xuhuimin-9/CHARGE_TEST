@@ -49,6 +49,9 @@ TASK_CHAIN_STATUS Task_Chain::Task_Chain_Initial(int index, std::string order_id
 	setMode(mode);
 	setType(type);
 
+	return createOutStorageTaskChain();//测试
+
+
 	if (mode == "IN" || mode == "OUT" || mode == "MOVE")
 	{
 		return createInStorageTaskChain();
@@ -196,7 +199,6 @@ TASK_CHAIN_STATUS Task_Chain::createOutStorageTaskChain()    //出库业务流�
 	if (Associate_AGV_->Is_Charging_ == CHARGING_STATUS::CHANRING_CHARGING && Associate_AGV_->Battery_Level_ > battery_low_range_)
 	{
 		Associate_AGV_->Is_Charging_ = CHARGING_STATUS::CHARGING_PAUSE;
-		//Charge_Station_Task(Associate_AGV_->ID_, int(Associate_AGV_->AGV_In_Station_.at(1)), "STOP");充电任务停止已加在stopCharging中
 		AGV_MANAGE.stopCharging(Associate_AGV_);
 		stopChargingLog();
 		return BLOCKED;
@@ -207,26 +209,17 @@ TASK_CHAIN_STATUS Task_Chain::createOutStorageTaskChain()    //出库业务流�
 		AGV_MANAGE.setBusy(Associate_AGV_->AGV_ID_);
 		return BLOCKED;
 	}
-	else if (Associate_AGV_->Is_Charging_ == CHARGING_STATUS::CHANRING_STOP)
+	if (!find_charge_task_is_over(Associate_AGV_->AGV_ID_))
 	{
-		/*std::string start_area = TASK_CHAIN_MANAGE.get_storage_area(getStart());
-		std::string target_area = TASK_CHAIN_MANAGE.get_storage_area(getTargeted());
-
-		//如果取货点或者放货点查询都为BUSY时，则先回停车点
-
-		if ((!WCS_DB_->getDatabaseCurrentComfirmStatus(start_area) || !WCS_DB_->getDatabaseCurrentComfirmStatus(target_area)) && Associate_AGV_->AGV_In_Station_.at(0)!='P')
-		{
-			Associate_AGV_->Parking_Station_ = "";
-			Associate_AGV_->Parking_Is_Charging_ = "";
-			WCS_DB_->getCurrentParkingStation(Associate_AGV_->Parking_Station_, Associate_AGV_->Parking_Is_Charging_, Associate_AGV_->AGV_Type_);
-
-			Create_Sub_Task("NA", Associate_AGV_->Parking_Station_, 1, Associate_AGV_->AGV_Type_, PARKING_FORWARD, 0, Associate_AGV_->ID_, "WAIT_AREA", "OUT", 10, "140", WAIT_AREA, WAIT_AREA_CHECK);
-			WCS_DB_->reserveCurrentParkingStation(Associate_AGV_->Parking_Station_);
-		}*/
+		//充电任务未结束
+		return BLOCKED;
+	}
+	else if (Associate_AGV_->Is_Charging_ == CHARGING_STATUS::CHANRING_STOP )
+	{
 
 		Create_Sub_Task("NA", getStart(), 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_GET, 0, Associate_AGV_->ID_, "EQUIP_GET", "OUT", EQUIP_GET, EQUIP_GET_CHECK);
 
-		Create_Sub_Task("NA", getTargeted(), 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_PUT, 0, Associate_AGV_->ID_, "BUFFER_PUT", "OUT", BUFFER_PUT, BUFFER_PUT_CHECK);
+		Create_Sub_Task("NA", getTargeted(), 1, Associate_AGV_->AGV_Type_, DIRECT_FORWARD_PUT, 0, Associate_AGV_->ID_, "EQUIP_PUT", "OUT", EQUIP_PUT, EQUIP_PUT_CHECK);
 
 		std::stringstream ss;
 		ss << Associate_AGV_->AGV_ID_ << ":Begin createOutStorageTaskChain";
@@ -294,31 +287,17 @@ TASK_CHAIN_STATUS Task_Chain::createChargingTaskChain()
 {
 	Task_Type_ = TASK_CHAIN_TYPE::CHARGING_TASK;
 	std::cout << "AGV " << Associate_AGV_->ID_ << " Charging!" << std::endl;
-	std::string extra_param;
-	if (Associate_AGV_->AGV_In_Station_ == "P1")
-	{
-		extra_param = "10";
-	}
-	else if (Associate_AGV_->AGV_In_Station_ == "P2")
-	{
-		extra_param = "20";
-	}
-	else if (Associate_AGV_->AGV_In_Station_ == "P5")
-	{
-		extra_param = "30";
-	}
-	else if (Associate_AGV_->AGV_In_Station_ == "P6")
-	{
-		extra_param = "40";
-	}
 
 	Create_Sub_Task(Associate_AGV_->AGV_In_Station_, Associate_AGV_->AGV_In_Station_, 1, Associate_AGV_->AGV_Type_, FAKE_AGV_IN_SITU_CHARGING, 0, Associate_AGV_->ID_, "CHARGING", "CHARGING", IS_CHARGING);
 
 #if 1
-	extern agv_battery* p_battery[];
+	extern agv_battery* p_battery[30];
+	//int battery_id = Associate_AGV_->ID_ - 1 ;
+	int battery_id = init_sys_battery(Associate_AGV_->AGV_ID_);
+	
 	extern charge_station* p_cs[];
-	int battery_id = Associate_AGV_->ID_ - 1;
 	int station_id = Associate_AGV_->AGV_In_Station_.at(1) - '0' - 1 ;
+
 	charge_task* p_work = new charge_task(p_battery[battery_id], p_cs[station_id]);
 	add_charge_task(Associate_AGV_->AGV_ID_, p_work);
 	DWORD ThreadID;

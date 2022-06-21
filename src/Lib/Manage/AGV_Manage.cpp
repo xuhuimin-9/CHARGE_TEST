@@ -418,7 +418,7 @@ void AGV_Manage::stopCharging(AGV* agv)
 {
 	//int current_charging_task;
 	std::stringstream ss;
-	if (TASK_CHAIN_MANAGE.Stop_Charging(agv->AGV_ID_))
+	if (false & TASK_CHAIN_MANAGE.Stop_Charging(agv->AGV_ID_))//充电桩控制流程中不存在尚未下发
 	{
 		// 尚未下发,已截断
 	}

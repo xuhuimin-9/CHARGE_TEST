@@ -17,6 +17,7 @@ using namespace std;
 #include "Core/charge_station.h"
 #include "Core/agv_battery.h"
 #include "Manage/AGV_Manage.h"
+#include "Manage/Config_Manage.h"
 #include "comm/simplelog.h"
 #include "Core/Task_Chain_Manage.h"
 
@@ -104,7 +105,7 @@ charge_task* find_charge_task(int agvid)
 * 结果 true为完成，false为未完成
 */
 
-bool find_charge_task_state(int agvid)
+bool find_charge_task_is_over(int agvid)
 {
 	charge_task* p_task = find_charge_task(agvid);
 	if (p_task)
@@ -128,6 +129,7 @@ charge_task::charge_task(agv_battery* p_battery, charge_station* p_charge)
 	stop_ = 0;
 	state_ = TASK_CHARGE_START; 
 	charge_period_ = 100;  /* seconds */
+	getBatteryConfig();
 }
 
 /*
@@ -220,6 +222,12 @@ void charge_task::set_charge_period(int period)
 {
 	this->charge_period_ = period;
 }
+
+void charge_task::getBatteryConfig()
+{
+	CONFIG_MANAGE.readConfig("Stop_Charge_Level", &stop_charge_soc_);
+}
+
 
 /*
 * 充电任务
@@ -380,6 +388,11 @@ boolean charge_task::run_entry(charge_task* p_task)
 						if (2 == err_current_cnt)
 						{
 							log_info("exceptional current was found!");
+
+							p_charge->set_charge_current(0);
+							write_msg(p_charge->get_queue(), NULL, 0, START_CHARGE_MSG_MACRO);
+							p_battery->get_running_state_value(battery_state);
+
 							goto exit;
 						}
 					}
@@ -393,7 +406,7 @@ boolean charge_task::run_entry(charge_task* p_task)
 			{
 				if (p_task->get_battery()->get_soc_value(soc_value))
 				{
-					if (soc_value > 64) //当电量达85则自动断开
+					if (soc_value > p_task->stop_charge_soc_) //当电量达85则自动断开
 					{
 						err_soc_cnt += 1;
 
@@ -471,7 +484,7 @@ boolean charge_task::run_entry(charge_task* p_task)
 
 			/* 确保充电桩缩回去 */
 
-			if (index < 150)
+			if (index < 60)
 			{
 				index++;
 				Sleep(100);
@@ -498,6 +511,7 @@ boolean charge_task::run_entry(charge_task* p_task)
 
 			log_info("AGV CHARGE TASK OVER!");
 			p_task->set_stop(1);
+			clean_sys_battery(p_battery->get_agv_battery_id());
 
 			break;
 		default:

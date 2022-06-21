@@ -130,9 +130,9 @@ typedef struct _AGV_Status : Resoure
 	int BATTERY_ERR_CODE_;
 	double CHARGE_CURRENT_;//充电电流
 	double DISCHARGE_CURRENT_;//放电电流
-	double MAX_CURRENT;//最大电流
-	double HIGH_VOLTAGE;//最高电压
-	double LOW_VOLTAGE;//最低电压
+	double MAX_CURRENT_;//最大电流
+	double HIGH_VOLTAGE_;//最高电压
+	double LOW_VOLTAGE_;//最低电压
 	int GLOBAL_PLANNER_STATUS_;
 	int LOCAL_PLANNER_STATUS_;
 	int OBSTACLE_DETECT_STATUS_;

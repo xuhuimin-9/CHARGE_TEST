@@ -262,6 +262,53 @@ boolean charge_station::get_charge_state(unsigned short* p_state, unsigned int* 
 	return TRUE;
 }
 
+boolean charge_station::get_charge_state(unsigned short* p_state, unsigned int* p_voltage, unsigned char* p_current, unsigned short* p_err)
+{
+	unsigned char buf[26];
+	unsigned char* p_char = &buf[0];
+	int size = 25;
+
+	unsigned char arm_state = 0;
+	unsigned char arm_mode = 0;
+
+	if (NULL == p_state || NULL == p_voltage || NULL == p_current)
+	{
+		return FALSE;
+	}
+
+	if (TRUE != recv_packet(p_char, 26))
+	{
+		return FALSE;
+	}
+
+	/* 头字符 byte1- byte4*/
+
+	ASSERT_DATA(p_char[0] == 0xff);
+	ASSERT_DATA(p_char[1] == 0xff);
+	ASSERT_DATA(p_char[2] == 0xff);
+	ASSERT_DATA(p_char[3] == 0xff);
+
+	/* 获取电压  */
+
+	*p_voltage = (p_char[6] << 0x8) + p_char[7];
+	*p_current = (p_char[8] << 0x8) + p_char[9];
+
+	arm_state = p_char[11];
+	arm_mode = p_char[13];
+	*p_state = (arm_state << 0x8) + arm_mode;
+	*p_err = p_char[14] << 0x8 + p_char[15];
+
+
+	/* 尾字符 byte23 - byte26*/
+
+	ASSERT_DATA(p_char[22] == 0xee);
+	ASSERT_DATA(p_char[23] == 0xee);
+	ASSERT_DATA(p_char[24] == 0xee);
+	ASSERT_DATA(p_char[25] == 0xee);
+
+	return TRUE;
+}
+
 /*
 * 函数： 申请控制充电
 * 参数： 数据， 长度
@@ -308,18 +355,6 @@ boolean charge_station::_request_charge_control(unsigned char* p_char, int size,
 	p_char[7] = control;
 
 	/* word3, arm control */
-	//如果电流大于0则伸出
-	/*if (current > 0)
-	{
-		p_char[8] = 0x00;
-		p_char[9] = 0x01;
-	}
-	else
-	{
-		p_char[8] = 0x00;
-		p_char[9] = 0x02;
-	}*/
-
 	p_char[8] = 0x00;
 	p_char[9] = 0x00;
 
@@ -475,8 +510,6 @@ boolean charge_station::strech_out_arm()
 
 	_request_arm_control(&packet[0], 22, 0x1);//该方法中需要另外发送充电电流
 
-	//_request_charge_control(&packet[0], 22, 0x1,max_current_);//该方法中最后一个参数为电流(实时读最大充电电流)并-10
-
 	return send_packet(&packet[0], 22);
 }
 
@@ -535,7 +568,6 @@ boolean charge_station::set_charge_current(int value)
 
 int charge_station::get_charge_current()
 {
-	log_info("get charge current : %d", charge_current_);
 	return charge_current_;
 }
 
@@ -808,18 +840,20 @@ int charge_station::run_entry(charge_station* p_charge)
 				unsigned short state;
 				unsigned int voltage;
 				unsigned char current;
+				unsigned short err_code;
 
 				state = voltage = current = 0;
 
 				result = p_charge->request_charge_state();
 				printf("result = %s\n", result == true ? "ok" : "error");
 				Sleep(500);
-				result = p_charge->get_charge_state(&state, &voltage, &current);
+				result = p_charge->get_charge_state(&state, &voltage, &current, &err_code);
 				printf("result = %s\n", result == true ? "ok" : "error");
 
 				printf("state = %d\n", state);
 				printf("voltage = %d\n", voltage);
 				printf("current = %d\n", current);
+				log_info("charge task err ! charge_station_ID : %d , state : %d , voltage : %d ,current : %d , err_code : %", state, voltage, current, err_code);
 
 				break;
 

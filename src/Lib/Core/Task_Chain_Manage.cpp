@@ -274,6 +274,10 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 				current_task->Set_Status(TASK_CHAIN_STATUS::PARKING);
 			}
 #endif
+			else if (Current_Sub_Task->task_mode_ == "OUT")
+			{
+				current_task->Set_Status(TASK_CHAIN_STATUS::EQUIP_GET);
+			}
 			else if (Current_Sub_Task->task_mode_ == "IN"|| Current_Sub_Task->task_mode_ == "OUT" || Current_Sub_Task->task_mode_ == "MOVE")
 			{
 				current_task->Set_Status(EQUIP_GET_CONFIRM);
@@ -352,13 +356,22 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 			//DLA是WMS入库口，DLK是WMS出库口
 
 			//2.1询问能否取放货 【1：取货】
-			if (API_CLIENT.QueryIsCanGetOrPut(current_task->Order_ID_, current_task->getStart(), "1"))//本地测试暂时关掉
-			//if (true)
+			//if (API_CLIENT.QueryIsCanGetOrPut(current_task->Order_ID_, current_task->getStart(), "1"))//本地测试暂时关掉
+			if (true)
 			{
 				if (Current_Sub_Task && Current_Sub_Task->carry_type_ == "EQUIP_GET")
 				{
 					if (EVENT_HANDLER.Sub_Task_Dispatch_Event(Current_Sub_Task, current_task))
 					{
+						if (current_agv->AGV_In_Station_ == "P1" || current_agv->AGV_In_Station_ == "P2")
+						{
+							ORDER_MANAGE.releaseParkingStation(current_agv->AGV_In_Station_);   //释放停车点
+							current_agv->Parking_Is_Charging_ = "";
+							current_agv->Parking_Station_ = "";
+							std::stringstream ss;
+							ss << "release Parking Station: " << current_agv->AGV_In_Station_;
+							log_info_color(log_color::red, ss.str().c_str());
+						}
 						current_task->Set_Status(TASK_CHAIN_STATUS::EQUIP_GET_CHECK);
 					}
 				}
@@ -375,13 +388,11 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 			if (Current_Sub_Task->sub_task_status_ == DONE)
 			{
 				//2.2上报动作完成 【1：取货完成】//本地测试暂时关掉
-				API_CLIENT.TaskFinishReport(current_task->Order_ID_, std::to_string(Current_Sub_Task->agv_id_), current_task->getTargeted(), "1");
-				current_task->Set_Status(TASK_CHAIN_STATUS::EQUIP_PUT_CONFIRM);
+				current_task->Set_Status(TASK_CHAIN_STATUS::EQUIP_PUT);
 			}
 			else if (Current_Sub_Task->sub_task_status_ == REJECTED || Current_Sub_Task->sub_task_status_ == FAILED)
 			{
 				//2.2上报动作完成 【9：上报取货任务失败】
-				API_CLIENT.TaskFinishReport(current_task->Order_ID_, std::to_string(Current_Sub_Task->agv_id_), current_task->getStart(), "8");
 				current_task->Set_Status(ERR);
 			}
 			else if (Current_Sub_Task->sub_task_status_ == ABORTED)
@@ -442,24 +453,13 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 		{
 			Current_Sub_Task = current_task->Move_To_Next_Sub_Task(Current_Sub_Task, "EQUIP_PUT");
 
-			//2.1询问能否取放货 【2：放货】
-			if (API_CLIENT.QueryIsCanGetOrPut(current_task->Order_ID_, current_task->getTargeted(), "2"))//本地测试暂时关掉
-			//if (true)
+			if (true)
 			{
 				if (Current_Sub_Task && Current_Sub_Task->carry_type_ == "EQUIP_PUT")
 				{
 					if (EVENT_HANDLER.Sub_Task_Dispatch_Event(Current_Sub_Task, current_task))
 					{
 						current_task->Set_Status(TASK_CHAIN_STATUS::EQUIP_PUT_CHECK);
-
-						if (current_task->getStart() != "DLL")
-						{
-							std::string start_area = get_storage_area(current_task->getStart());
-							if (start_area != "" && !WCS_DB_->getDatabaseCurrentComfirmStatus(start_area))
-							{
-								WCS_DB_->setDatabaseCurrentComfirmStatus(start_area, "IDLE");
-							}
-						}
 					}
 				}
 			}
@@ -473,14 +473,10 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 
 			if (Current_Sub_Task->sub_task_status_ == DONE)
 			{
-				//2.2上报动作完成 【2：放货完成】//本地测试暂时关掉
-				API_CLIENT.TaskFinishReport(current_task->Order_ID_, std::to_string(Current_Sub_Task->agv_id_), current_task->getTargeted(), "2");
 				current_task->Set_Status(OVER);
 			}
 			else if (Current_Sub_Task->sub_task_status_ == REJECTED || Current_Sub_Task->sub_task_status_ == FAILED)
 			{
-				//2.2上报动作完成 【9：上报放货任务失败】
-				API_CLIENT.TaskFinishReport(current_task->Order_ID_, std::to_string(Current_Sub_Task->agv_id_), current_task->getTargeted(), "9");
 				current_task->Set_Status(ERR);
 			}
 			else if (Current_Sub_Task->sub_task_status_ == ABORTED)
@@ -565,12 +561,6 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 					ss << "task_chain_manager:Now parking=" << BATTERY_MANAGE.Now_Parking_;
 					log_info_color(log_color::green, ss.str().c_str());
 					current_task->Set_Status(TASK_CHAIN_STATUS::PARKING_CHECK);
-
-					std::string from_area = get_storage_area(Current_Sub_Task->task_from_);
-					if (from_area != "" && !WCS_DB_->getDatabaseCurrentComfirmStatus(from_area))
-					{
-						WCS_DB_->setDatabaseCurrentComfirmStatus(from_area, "IDLE");
-					}
 				}
 			}
 			it++;
@@ -603,11 +593,7 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 		{
 			//在Charging里面判断子任务的状态;
 			current_task->Check_Feedback(Current_Sub_Task);
-			if (find_charge_task_state(current_task->Associate_AGV_->AGV_ID_))
-			{
-				current_task->Set_Status(OVER);
-			}
-			else if (Current_Sub_Task->sub_task_status_ == DONE)
+			if (find_charge_task_is_over(current_task->Associate_AGV_->AGV_ID_))
 			{
 				current_task->Set_Status(OVER);
 			}
@@ -750,10 +736,6 @@ void Task_Chain_Manage::Task_Status_Check_Event()
 					<< ",PALLETNO:" << current_task->getPalletno() << ",Location:" << current_task->getGoodsPut();
 				log_info_color(log_color::purple, ss2.str().c_str());
 
-			}
-			if (current_task->getType() == "CHARGING")
-			{
-				AGV_MANAGE.stopCharging(current_agv);
 			}
 			std::stringstream ss;
 			ss << current_task->Task_ID_ << ":ABORTED Task !!!";

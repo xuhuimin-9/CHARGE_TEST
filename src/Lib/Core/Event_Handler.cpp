@@ -37,7 +37,7 @@ void Event_Handler::Initial(){
 	PARKING_MANAGE.Initial();
 
 	init_sys_charge();//初始化充电桩
-	init_sys_battery();//初始化电池
+	//init_sys_battery();//初始化电池
 
 	existstorages = new std::map<std::string, int>;
 }
@@ -215,6 +215,7 @@ bool Event_Handler::Sub_Task_Dispatch_Event(Sub_Task* current_sub_task,Task_Chai
 	/* 昀迪充电桩测试，如果是假原地充电任务直接返回true，不下发给数据库 */
 	if (Task_Dispatch_.task_type_ == 1041)
 	{
+		Task_Dispatch_.dispatched = true;
 		return true;
 	}
 
@@ -258,13 +259,14 @@ void Event_Handler::Task_Fetcher_Event()         //订单分配 :kh_order_info =
 			}
 		}
 #endif
+
+#if 0
 		std::string start_area = TASK_CHAIN_MANAGE.get_storage_area(new_task_in.START_);
 		std::string target_area = TASK_CHAIN_MANAGE.get_storage_area(new_task_in.TARGET_);
 		
 		WCS_CON_->setDatabaseCurrentComfirmStatus(start_area, "BUSY", new_task_in.AGV_ID_);
 		WCS_CON_->setDatabaseCurrentComfirmStatus(target_area, "BUSY", new_task_in.AGV_ID_);
-		//WCS_CON_->setDatabaseCurrentComfirmStatus(start_area, "BUSY");
-		//WCS_CON_->setDatabaseCurrentComfirmStatus(target_area, "BUSY");
+#endif
 
 		agv_id = new_task_in.AGV_ID_;
 		if (AGV_MANAGE.getCurrentAgvFreeStatus(agv_id))

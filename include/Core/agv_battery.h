@@ -14,6 +14,7 @@ public:
 	~agv_battery();
 
 	bool get_max_current_value(unsigned short& value);   /* 获取最大电流*/
+	bool get_running_state_value(unsigned short& value); /* 获取运行状态*/
 	bool get_soc_value(unsigned short& value);           /* 获取soc数值 */
 	bool get_battery_state(unsigned short& value);       /* 获取电池状态 */
 	bool send_start_charge(int task_id);                 /* 继电器闭合*/
@@ -28,6 +29,7 @@ public:
 	bool get_temperature(short& value);                   /* 获取实时温度 */
 	bool get_voltage(unsigned short& value);              /* 获取实时电压 */
 	bool get_target_ok(unsigned short& value);            /* 获取是否达到目标点信号 */
+	int get_agv_battery_id();							  /* 获取当前agv_battery的id号 */
 
 	bool set_agv_battery_info();
 	void set_soc(unsigned short soc);
@@ -77,6 +79,8 @@ private:
 */
 
 void init_sys_battery();
+int init_sys_battery(int agv_id);
 void clean_sys_battery();
+bool clean_sys_battery(int agv_id);
 
 #endif

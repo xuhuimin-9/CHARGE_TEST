@@ -38,6 +38,7 @@ using namespace std;
 
 //extern QUEUE* p_main_queue;
 agv_battery* p_battery[] = { 0 };
+int battery_index = 0;
 
 /*
 * 构造函数
@@ -116,7 +117,7 @@ bool agv_battery::send_main_thread_msg(QUEUE* p_queue, int opr, int offset, int 
 }
 
 /*
-* 获取当前agv信息
+* 配置当前agv信息
 */
 
 bool agv_battery::set_agv_battery_info()
@@ -126,28 +127,25 @@ bool agv_battery::set_agv_battery_info()
 	{
 		this->soc_ = battery_info.BATTERY_SOC_;
 		this->current_ = battery_info.CHARGE_CURRENT_;//充电电流
-		this->low_voltage_ = battery_info.LOW_VOLTAGE;
-		this->high_voltage_ = battery_info.HIGH_VOLTAGE;
+		this->low_voltage_ = battery_info.LOW_VOLTAGE_;
+		this->high_voltage_ = battery_info.HIGH_VOLTAGE_;
 		this->temperature_ = battery_info.BATTERY_TEMP_;
 		this->run_state_ = battery_info.BATTERY_STATUS_;
-		this->max_current_ = battery_info.MAX_CURRENT;
+		this->max_current_ = battery_info.MAX_CURRENT_;
 		this->voltage_ = battery_info.BATTERY_VOLTAGE_;
 		return true;
 	}
 	return false;
 }
 
-/*bool agv_battery::get_soc_value(short& value)
+/*
+* 获取当前agv_battery的ID
+*/
+
+int agv_battery::get_agv_battery_id()
 {
-	if(ACS_CON_->getCurrentBattery(agv_id_, "soc", value))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}*/
+	return this->agv_id_;
+}
 
 /*
 * 获取最高电压
@@ -189,7 +187,7 @@ bool agv_battery::get_low_voltage(unsigned short& value)
 
 bool agv_battery::get_current(short& value)
 {
-	if (ACS_CON_->getCurrentBattery(0, "current", value))
+	if (ACS_CON_->getCurrentBattery(agv_id_ - 1, "current", value))
 	{
 		value = -value;
 		log_info("get agv battery current : %d", value);
@@ -205,7 +203,7 @@ bool agv_battery::get_current(short& value)
 
 bool agv_battery::get_soc_value(unsigned short& value)
 {
-	if (ACS_CON_->getCurrentBattery(0, "soc", value))
+	if (ACS_CON_->getCurrentBattery(agv_id_ - 1, "soc", value))
 	{
 		log_info("agv soc : %d", value);
 		return true;
@@ -268,9 +266,26 @@ bool agv_battery::get_battery_state(unsigned short& value)
 
 bool agv_battery::get_max_current_value(unsigned short& value)
 {
-	if (ACS_CON_->getCurrentBattery(0, "max_current", value))
+	if (ACS_CON_->getCurrentBattery(agv_id_ - 1, "max_current", value))
 	{
 		log_info("agv max current : %d", value);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+/*
+* 获取running state数值
+*/
+
+bool agv_battery::get_running_state_value(unsigned short& value)
+{
+	if (ACS_CON_->getCurrentBattery(agv_id_ - 1, "running_state", value))
+	{
+		log_info("AGV_ID : %d , running_state : %d ", agv_id_, value);
 		return true;
 	}
 	else
@@ -437,9 +452,9 @@ void init_sys_battery()
 	}*/
 
 	vector<string> agvs = { "1" };
-	for (int index = 0; index < agvs.size(); index++)
+	for (int i = 0; i < agvs.size(); i++)
 	{
-		p_battery[index] = new agv_battery(stoi(agvs[index]));
+		p_battery[i] = new agv_battery(stoi(agvs[i]));
 
 		/*if (agvs[index] == "1")
 		{
@@ -453,23 +468,57 @@ void init_sys_battery()
 }
 
 /*
+* 初始化指定battery的相关数据
+* 返回位置
+*/
+
+int init_sys_battery(int agv_id)
+{
+	for (int i = 0; i < battery_index; i++)
+	{
+		if (p_battery[i] && p_battery[i]->get_agv_battery_id() == agv_id)
+		{
+			return i; //已存在
+		}
+	}
+	for (int i = 0; i < battery_index; i++)
+	{
+		if (p_battery[i] == 0)
+		{
+			p_battery[i] = new agv_battery(agv_id);
+			return i;
+		}
+	}
+	p_battery[battery_index] = new agv_battery(agv_id);
+	battery_index++;
+	return battery_index - 1;
+}
+
+/*
 * 清理battery的相关数据
 */
 
-void clean_sys_battery()
+/*void clean_sys_battery()
 {
-	int index = 0;
-
-	/*for (index = 0; index < 13; index++)
-	{
-		if (p_battery[index])
-		{
-			delete p_battery[index];
-		}
-	}*/
 	delete []p_battery;
-}
+}*/
 
+/*
+* 清理指定battery的相关数据
+*/
+
+bool clean_sys_battery(int agv_id)
+{
+	for (int i = 0; i < battery_index; i++)
+	{
+		if (p_battery[i] && p_battery[i]->get_agv_battery_id() == agv_id)
+		{
+			p_battery[i] = 0;
+			return true;
+		}
+	}
+	return false;
+}
 
 
 

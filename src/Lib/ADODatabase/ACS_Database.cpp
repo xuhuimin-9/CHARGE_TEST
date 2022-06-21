@@ -194,11 +194,11 @@ bool ACS_Database::getCurrentAGVBatteryInfo(int agv_id, AGV_Status &battery_info
 			battery_info.AGV_ID_ = agv_id;
 			battery_info.BATTERY_SOC_ = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("soc"))->Value));
 			battery_info.CHARGE_CURRENT_ = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("electric"))->Value));
-			battery_info.LOW_VOLTAGE = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("low_voltage"))->Value));
-			battery_info.HIGH_VOLTAGE = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("hight_voltage"))->Value));
+			battery_info.LOW_VOLTAGE_ = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("low_voltage"))->Value));
+			battery_info.HIGH_VOLTAGE_ = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("hight_voltage"))->Value));
 			battery_info.BATTERY_TEMP_ = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("temperature"))->Value));
 			battery_info.BATTERY_STATUS_ = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("running_status"))->Value));
-			battery_info.MAX_CURRENT = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("max_charge_electric_"))->Value));
+			battery_info.MAX_CURRENT_ = atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("max_charge_electric_"))->Value));
 			battery_info.BATTERY_VOLTAGE_=atof((_bstr_t)(recordPtr_->Fields->GetItem(_variant_t("voltage"))->Value));
 			return true;
 		}
