@@ -313,6 +313,8 @@ boolean charge_task::run_entry(charge_task* p_task)
 			p_battery->send_start_charge(TASK_CHAIN_MANAGE.Generate_New_Sub_Task_ID());
 			p_charge->set_charge_current(20);
 			Sleep(1000);
+			//waiting done 
+
 			log_info("current task state is TASK_CHARGE_START , will stwich to TASK_ARM_OUT_STATE!");
 			p_task->set_state(TASK_ARM_OUT_STATE); //伸出机械臂
 			break;

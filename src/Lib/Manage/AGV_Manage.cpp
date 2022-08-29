@@ -416,7 +416,6 @@ void AGV_Manage::Get_Locked_AGV(std::vector<AGV*> &locked_agv_list)
 
 void AGV_Manage::stopCharging(AGV* agv)
 {
-	//int current_charging_task;
 	std::stringstream ss;
 	if (false & TASK_CHAIN_MANAGE.Stop_Charging(agv->AGV_ID_))//充电桩控制流程中不存在尚未下发
 	{
